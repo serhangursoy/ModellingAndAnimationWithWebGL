@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <title>Assignment 2: Hierarchical Modeling: Modeling and Animating a Quadruped Animal</title>
+  <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
+  <!--     Fonts and icons     -->
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" />
+  <!-- CSS Files -->
+  <link href="./assets/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="./assets/css/now-ui-kit.css?v=1.1.0" rel="stylesheet" />
+  <link href="./assets/css/toastr.css" rel="stylesheet" />
+  <!-- Define Vertex shader -->
+  <script id="vertex-shader" type="x-shader/x-vertex">
+  attribute  vec4 vPosition;
+  attribute  vec2 vTextCord;
+  attribute  vec4 vColor;
+
+  varying vec4 fColor;
+  uniform mat4 modelViewMatrix;
+  uniform mat4 projectionMatrix;
+  //varying vec2 fTextCord;
+  void main()
+  {
+    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+    fColor = vColor;
+    //  fTextCord = vTextCord;
+  }
+  </script>
+
+  <script id="fragment-shader" type="x-shader/x-fragment">
+
+  precision mediump float;
+  /*
+  varying vec2 fTextCord;
+  uniform sampler2D uTexture;
+  */
+
+varying  vec4 fColor;
+  void main()
+  {
+      gl_FragColor = fColor;
+    //  gl_FragColor = vec4(1.0, 0.4, 0.0, 1.0);
+    //gl_FragColor = texture2D(uTexture, fTextCord);
+  }
+  </script>
+
+
+
+  <script type="text/javascript" src="Common/webgl-utils.js"></script>
+  <script type="text/javascript" src="Common/InitShaders.js"></script>
+  <script type="text/javascript" src="Common/MV.js"></script>
+  <script type="text/javascript" src="engine.js"></script>
+
+
+<!-- Simple Tweaks in template -->
+<style>
+body {
+    background: #000000;
+   /* fallback for old browsers */
+    background: -webkit-linear-gradient(to top, #434343, #000000);
+   /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(to top, #434343, #000000);
+   /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+    color: white;
+}
+.bg-success {
+    background: #FC466B;
+   /* fallback for old browsers */
+    background: -webkit-linear-gradient(to right, #3F5EFB, #FC466B);
+   /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(to right, #3F5EFB, #FC466B);
+   /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+}
+.btn-warning {
+    background: #ffe259;
+   /* fallback for old browsers */
+    background: -webkit-linear-gradient(to top, #ffa751, #ffe259);
+   /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(to top, #ffa751, #ffe259);
+   /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+}
+.nav-link {
+    cursor: pointer;
+}
+.slider {
+    -webkit-appearance: none;
+    border-radius: 5px;
+    background: white;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #FC466B;
+    cursor: pointer;
+}
+.slider:hover {
+    opacity: 1;
+}
+.slider::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #4CAF50;
+    cursor: pointer;
+}
+.sliderContainer {
+    padding-top: 5%;
+    padding-left: 20px;
+    padding-right: 20px;
+    background: #FC466B;
+   /* fallback for old browsers */
+    background: -webkit-linear-gradient(to right, #3F5EFB, #FC466B);
+   /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(to right, rgba(63, 94, 251, 0.58), rgba(252, 70, 107, 0.52));
+}
+.form-control {
+    background-color: rgba(211, 193, 206, 0.78);
+}
+.backCanv {
+    background-image: url('assets/img/back3.gif');
+    background-repeat: no-repeat;
+    background-repeat: no-repeat;
+    background-size: auto 900px;
+}
+</style>
+</head>
+
+
+<body>
+   <!-- Navbar -->
+   <nav class="navbar navbar-expand-lg bg-success fixed-top">
+      <div class="container" style="padding-right: 0px;padding-left: 0px;margin-right: 0px;margin-left: 0px;">
+         <div class="navbar-translate ">
+            <a class="navbar-brand" rel="tooltip" title="Designed by Serhan Gürsoy. Bootstrap used.." data-placement="bottom" target="_blank">
+            Anima - Animation Creator
+            </a>
+         </div>
+         <div class="collapse navbar-collapse" style="position: absolute;right: 0;" id="navigation">
+            <ul class="navbar-nav">
+               <li class="nav-item">
+               </li>
+               <li class="nav-item">
+                  <a class="nav-link" id="save_all">
+                     <i class="now-ui-icons arrows-1_cloud-download-93"></i>
+                     <p>Save Animation</p>
+                  </a>
+               </li>
+               <li class="nav-item">
+                  <label class="nav-link" style="color: white" type='file' accept='text/plain' for="saveLoader">
+                     <input style="display:none" type="file" name="file" id="saveLoader"/>
+                     <i class="now-ui-icons files_paper"></i>
+                     <p>Load Animation</p>
+                  </label>
+               </li>
+               <li class="nav-item">
+                  <a class="nav-link" onclick="playAnimationOptimized()">
+                     <i class="now-ui-icons objects_support-17"></i>
+                     <p>Run</p>
+                  </a>
+               </li>
+            </ul>
+         </div>
+      </div>
+   </nav>
+   <!-- End Navbar -->
+   <div class="sliderContainer">
+      <div class="row">
+         <div class="col">
+            <div id="slider0">
+               Torso Rotation | -180 <input id="slide" type="range"
+                  min="-180" max="180" step="10" value="90" class="slider"
+                  />
+               180
+            </div>
+            <div id="slider11">
+               Global Rotation 180 <input id="slide" type="range"
+                  min="-180" max="180" step="10" value="-90" class="slider"
+                  />
+               -180
+            </div>
+            <br/>
+            <div id="slider12">
+               Position X -150px <input id="slide" type="range"
+                  min="-150" max="800" step="50" value="400" class="slider"
+                  />
+               800px
+            </div>
+            <div id="slider13">
+               Position Y 150px <input id="slide" type="range"
+                  min="150" max="700" step="50" value="400" class="slider"
+                  />
+               700px
+            </div>
+            <br/>
+         </div>
+         <div class="col">
+            <div id="slider10">
+               Head Left to Right | -90 <input id="slide" type="range"
+                  min="-90" max="90" step="10" value="0" class="slider"
+                  />
+               90
+            </div>
+            <br/>
+            <div id="slider1">
+               Head Up and Down | -40 <input id="slide" type="range"
+                  min="-40" max="160" step="10" value="0" class="slider"
+                  />
+               160
+            </div>
+            <br/>
+            <div id="slider14">
+               Neck | 60 <input id="slide" type="range"
+                  min="60" max="160" step="10" value="70" class="slider"
+                  />
+               160
+            </div>
+            <br/>
+            <div id="slider2">
+               Front Left Foot | -10 <input id="slide" type="range"
+                  min="-10" max="170" step="10" value="70" class="slider"
+                  />
+               170
+            </div>
+            <br/>
+            <div id="slider3">
+               Front Left Leg | 0 <input id="slide" type="range"
+                  min="0" max="180" step="10" value="10" class="slider"
+                  />
+               180
+            </div>
+            <br/>
+         </div>
+         <div class="col">
+            <div id="slider4">
+               Front Right Leg | -10 <input id="slide" type="range"
+                  min="-10" max="170" step="10" value="80" class="slider"
+                  />
+               170
+            </div>
+            <br/>
+            <div id="slider5">
+               Front Right Foot | 0 <input id="slide" type="range"
+                  min="0" max="170" step="10" value="10" class="slider"
+                  />
+               170
+            </div>
+            <br/>
+            <div id="slider6">
+               Back Left Leg | -10 <input id="slide" type="range"
+                  min="-10" max="180" step="10" value="90" class="slider"
+                  />
+               180
+            </div>
+            <br/>
+            <div id="slider7">
+               Back Left Foot |  0 <input id="slide" type="range"
+                  min="0" max="180" step="10" value="40" class="slider"
+                  />
+               180
+            </div>
+            <br/>
+         </div>
+         <div class="col">
+            <div id="slider8">
+               Back Right Leg |  -10 <input id="slide" type="range"
+                  min="-10" max="180" step="10" value="70" class="slider"
+                  />
+               180
+            </div>
+            <br/>
+            <div id="slider9">
+               Back Right Foot | 0 <input id="slide" type="range"
+                  min="0" max="180" step="10" value="30" class="slider"
+                  />
+               180
+            </div>
+            <br/>
+            <div>
+               Frame Time:
+               <input style="width: 30%" type="number" id="indexCount" value="1" class="form-control form-control-success" placeholder="Time Frame" min="1"/>
+               <button class="btn btn-warning" onclick="saveFrame()">
+               Save Frame
+               </button>
+            </div>
+         </div>
+      </div>
+   </div>
+   <div class="progress-container progress-primary" id="animationProgressWhole">
+      <span class="progress-badge">Animation Progress</span>
+      <div class="progress">
+         <div class="progress-bar progress-bar-warning" id="animationPercent" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+            <span class="progress-value">0%</span>
+         </div>
+      </div>
+   </div>
+   <!-- Our canvas will be in here! -->
+   <div class="backCanv">
+      <canvas id="gl-canvas" width="1200" height="700">Oops ... your browser doesn't support the HTML5 canvas element</canvas>
+   </div>
+</body>
+
+    <!--   Core JS Files   -->
+  <script src="./assets/js/core/jquery.3.2.1.min.js" type="text/javascript"></script>
+  <script src="./assets/js/core/popper.min.js" type="text/javascript"></script>
+  <script src="./assets/js/core/bootstrap.min.js" type="text/javascript"></script>
+  <!--  Plugin for Switches, full documentation here: http://www.jque.re/plugins/version3/bootstrap.switch/ -->
+  <script src="./assets/js/plugins/bootstrap-switch.js"></script>
+  <script src="./assets/js/toastr.min.js"></script>
+  <!--  Plugin for the Sliders, full documentation here: http://refreshless.com/nouislider/ -->
+  <script src="./assets/js/plugins/nouislider.min.js" type="text/javascript"></script>
+  <!--  Plugin for the DatePicker, full documentation here: https://github.com/uxsolutions/bootstrap-datepicker -->
+  <script src="./assets/js/plugins/bootstrap-datepicker.js" type="text/javascript"></script>
+  <!-- Control Center for Now Ui Kit: parallax effects, scripts for the example pages etc -->
+  <script src="./assets/js/now-ui-kit.js?v=1.1.0" type="text/javascript"></script>
+  <script type="text/javascript">
+  toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-right",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "600",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
+
+      function scrollToDownload() {
+
+          if ($('.section-download').length != 0) {
+              $("html, body").animate({
+                  scrollTop: $('.section-download').offset().top
+              }, 1000);
+          }
+      }
+  </script>
+
+  </html>
